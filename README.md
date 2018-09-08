@@ -1,5 +1,13 @@
-Black Magic Probe
-=================
+Black Magic Probe fork
+======================
+
+This fork of the BMP repository has the following changes:
+- change the SWCLK/SWDIO timing to improve set-up times on output
+- support Haoyu HyTiny board (`./platforms/hytiny`)
+- using the hytiny, simplify the debug output
+
+Original README follows
+-----------------------
 
 [![Build Status](https://travis-ci.org/blacksphere/blackmagic.svg?branch=master)](https://travis-ci.org/blacksphere/blackmagic)
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/blacksphere/blackmagic?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)

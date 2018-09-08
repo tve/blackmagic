@@ -160,7 +160,7 @@ static uint32_t adiv5_swdp_low_access(ADIv5_DP_t *dp, uint8_t RnW,
 
 	if(ack != SWDP_ACK_OK) {
 		DEBUG("SWDP invalid ACK: %x {Q:%c%c%d}\n", ack,
-			req&2?'A':'D', req&4?'R':'W', (req>>3)&3);
+			request&2?'A':'D', request&4?'R':'W', (request>>3)&3);
 		raise_exception(EXCEPTION_ERROR, "SWDP invalid ACK");
         }
 

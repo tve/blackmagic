@@ -1,0 +1,23 @@
+Black Magic Probe for Haoyu HyTiny
+==================================
+
+This directory supports BMP on the
+[Haoyu
+HyTiny](https://www.hotmcu.com/stm32f103tb-arm-cortex-m3-development-board-p-222.html?cPath=1_20)
+which is a tad more expensive than a blue pill but has a nice form-factor and is well made.
+
+It supports SWDCLK and SWDIO and presumably TRACESWO, although that is untested. The pin assignment
+is:
+- LED: A1 (built-in LED)
+- TX: A2 (debug TX to device under test)
+- RX: A3 (debug RX from device under test)
+- SWDIO: A4
+- SWCLK: A5
+- nRESET: A6
+
+The BMP binary can be built using `make PROBE_HOST=hytiny` and needs to be uploaded using another
+BMP or STlink. THe DFU code is currently left out.
+
+To hack on the code there is debug support: add `ENABLE_DEBUG=1` to the make command. The debug
+output appears on the "debug USB terminal", i.e. the same one where the debug uart to/from the
+device under test appears.
