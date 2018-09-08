@@ -59,18 +59,25 @@ int adiv5_swdp_scan(void)
 	swdptap_seq_out(0xE79E, 16); /* 0b0111100111100111 */
 	swdptap_seq_out(0xFFFFFFFF, 32);
 	swdptap_seq_out(0xFFFFFFFF, 18);
+
 	swdptap_seq_out(0, 16);
 
-	/* Read the SW-DP IDCODE register to syncronise */
+	/* Read the SW-DP IDCODE register to synchronise */
 	/* This could be done with adiv_swdp_low_access(), but this doesn't
 	 * allow the ack to be checked here. */
 	swdptap_seq_out(0xA5, 8);
 	ack = swdptap_seq_in(3);
-	if((ack != SWDP_ACK_OK) || swdptap_seq_in_parity(&dp->idcode, 32)) {
-		DEBUG("\n");
+	if(ack != SWDP_ACK_OK) {
+		DEBUG("Invalid SWDP ACK (%x) while fetching IDCODE\n", ack);
 		free(dp);
 		return -1;
 	}
+	if (swdptap_seq_in_parity(&dp->idcode, 32)) {
+		DEBUG("SWDP parity error while fetching IDCODE: 0x%x\n", dp->idcode);
+		free(dp);
+		return -1;
+	}
+	DEBUG("SWDP IDCODE 0x%lx\n", dp->idcode);
 
 	dp->dp_read = adiv5_swdp_read;
 	dp->error = adiv5_swdp_error;
@@ -151,8 +158,11 @@ static uint32_t adiv5_swdp_low_access(ADIv5_DP_t *dp, uint8_t RnW,
 		return 0;
 	}
 
-	if(ack != SWDP_ACK_OK)
+	if(ack != SWDP_ACK_OK) {
+		DEBUG("SWDP invalid ACK: %x {Q:%c%c%d}\n", ack,
+			req&2?'A':'D', req&4?'R':'W', (req>>3)&3);
 		raise_exception(EXCEPTION_ERROR, "SWDP invalid ACK");
+        }
 
 	if(RnW) {
 		if(swdptap_seq_in_parity(&response, 32))  /* Give up on parity error */

@@ -410,19 +410,26 @@ void adiv5_dp_init(ADIv5_DP_t *dp)
 	}
 
 	/* Write request for system and debug power up */
+        DEBUG("System/debug power-up (ctrlstat=%x)\n", ctrlstat);
 	adiv5_dp_write(dp, ADIV5_DP_CTRLSTAT,
-			ctrlstat |= ADIV5_DP_CTRLSTAT_CSYSPWRUPREQ |
-				ADIV5_DP_CTRLSTAT_CDBGPWRUPREQ);
+            ctrlstat | ADIV5_DP_CTRLSTAT_CSYSPWRUPREQ | ADIV5_DP_CTRLSTAT_CDBGPWRUPREQ);
 	/* Wait for acknowledge */
 	while(((ctrlstat = adiv5_dp_read(dp, ADIV5_DP_CTRLSTAT)) &
 		(ADIV5_DP_CTRLSTAT_CSYSPWRUPACK | ADIV5_DP_CTRLSTAT_CDBGPWRUPACK)) !=
-		(ADIV5_DP_CTRLSTAT_CSYSPWRUPACK | ADIV5_DP_CTRLSTAT_CDBGPWRUPACK));
+		(ADIV5_DP_CTRLSTAT_CSYSPWRUPACK | ADIV5_DP_CTRLSTAT_CDBGPWRUPACK)) {
+            adiv5_dp_write(dp, ADIV5_DP_CTRLSTAT,
+                ctrlstat | ADIV5_DP_CTRLSTAT_CSYSPWRUPREQ | ADIV5_DP_CTRLSTAT_CDBGPWRUPREQ);
+            DEBUG("Waiting for ACK %x...\n", ctrlstat);
+            volatile unsigned x = 48000000/4/2; do { ; } while(--x); // approx 1/2 sec
+        }
+
 
 	if(DO_RESET_SEQ) {
 		/* This AP reset logic is described in ADIv5, but fails to work
 		 * correctly on STM32.  CDBGRSTACK is never asserted, and we
 		 * just wait forever.
 		 */
+                DEBUG("Resetting\n");
 
 		/* Write request for debug reset */
 		adiv5_dp_write(dp, ADIV5_DP_CTRLSTAT,
@@ -439,6 +446,7 @@ void adiv5_dp_init(ADIv5_DP_t *dp)
 				ADIV5_DP_CTRLSTAT_CDBGRSTACK);
 	}
 
+	DEBUG("Probing\n");
 	/* Probe for APs on this DP */
 	for(int i = 0; i < 256; i++) {
 		ADIv5_AP_t *ap = adiv5_new_ap(dp, i);

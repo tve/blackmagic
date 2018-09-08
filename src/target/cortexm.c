@@ -259,8 +259,7 @@ static bool cortexm_forced_halt(target *t)
 			break;
 		target_halt_request(t);
 	}
-	if (dhcsr != 0x00030003)
-		return false;
+	if (dhcsr != 0x00030003) return false;
 	return true;
 }
 
@@ -301,6 +300,7 @@ bool cortexm_probe(ADIv5_AP_t *ap)
 	target_add_commands(t, cortexm_cmd_list, cortexm_driver_str);
 
 	/* Probe for FP extension */
+	DEBUG("Probe FP\n");
 	uint32_t cpacr = target_mem_read32(t, CORTEXM_CPACR);
 	cpacr |= 0x00F00000; /* CP10 = 0b11, CP11 = 0b11 */
 	target_mem_write32(t, CORTEXM_CPACR, cpacr);
@@ -315,6 +315,7 @@ bool cortexm_probe(ADIv5_AP_t *ap)
 			CORTEXM_DEMCR_VC_CORERESET;
 
 	/* Check cache type */
+	DEBUG("Probe cache type\n");
 	uint32_t ctr = target_mem_read32(t, CORTEXM_CTR);
 	if ((ctr >> 29) == 4) {
 		priv->has_cache = true;
@@ -323,11 +324,13 @@ bool cortexm_probe(ADIv5_AP_t *ap)
 		target_check_error(t);
 	}
 
+	DEBUG("Force halt\n");
 	if (!cortexm_forced_halt(t))
 		return false;
 #define PROBE(x) \
 	do { if ((x)(t)) {target_halt_resume(t, 0); return true;} else target_check_error(t); } while (0)
 
+	DEBUG("Probe specific series\n");
 	PROBE(stm32f1_probe);
 	PROBE(stm32f4_probe);
 	PROBE(stm32h7_probe);
@@ -437,14 +440,14 @@ static void cortexm_regs_read(target *t, void *data)
 	*regs++ = adiv5_dp_read(ap->dp, ADIV5_AP_DB(DB_DCRDR));
 	for(i = 1; i < sizeof(regnum_cortex_m) / 4; i++) {
 		adiv5_dp_low_access(ap->dp, ADIV5_LOW_WRITE, ADIV5_AP_DB(DB_DCRSR),
-		                    regnum_cortex_m[i]);
+				    regnum_cortex_m[i]);
 		*regs++ = adiv5_dp_read(ap->dp, ADIV5_AP_DB(DB_DCRDR));
 	}
 	if (t->target_options & TOPT_FLAVOUR_V7MF)
 		for(i = 0; i < sizeof(regnum_cortex_mf) / 4; i++) {
 			adiv5_dp_low_access(ap->dp, ADIV5_LOW_WRITE,
-			                    ADIV5_AP_DB(DB_DCRSR),
-			                    regnum_cortex_mf[i]);
+					    ADIV5_AP_DB(DB_DCRSR),
+					    regnum_cortex_mf[i]);
 			*regs++ = adiv5_dp_read(ap->dp, ADIV5_AP_DB(DB_DCRDR));
 		}
 }
@@ -466,20 +469,20 @@ static void cortexm_regs_write(target *t, const void *data)
 	 * calls out. */
 	adiv5_ap_write(ap, ADIV5_AP_DB(DB_DCRDR), *regs++); /* Required to switch banks */
 	adiv5_dp_low_access(ap->dp, ADIV5_LOW_WRITE, ADIV5_AP_DB(DB_DCRSR),
-	                    0x10000 | regnum_cortex_m[0]);
+			    0x10000 | regnum_cortex_m[0]);
 	for(i = 1; i < sizeof(regnum_cortex_m) / 4; i++) {
 		adiv5_dp_low_access(ap->dp, ADIV5_LOW_WRITE,
-		                    ADIV5_AP_DB(DB_DCRDR), *regs++);
+				    ADIV5_AP_DB(DB_DCRDR), *regs++);
 		adiv5_dp_low_access(ap->dp, ADIV5_LOW_WRITE, ADIV5_AP_DB(DB_DCRSR),
-		                    0x10000 | regnum_cortex_m[i]);
+				    0x10000 | regnum_cortex_m[i]);
 	}
 	if (t->target_options & TOPT_FLAVOUR_V7MF)
 		for(i = 0; i < sizeof(regnum_cortex_mf) / 4; i++) {
 			adiv5_dp_low_access(ap->dp, ADIV5_LOW_WRITE,
-			                    ADIV5_AP_DB(DB_DCRDR), *regs++);
+					    ADIV5_AP_DB(DB_DCRDR), *regs++);
 			adiv5_dp_low_access(ap->dp, ADIV5_LOW_WRITE,
-			                    ADIV5_AP_DB(DB_DCRSR),
-			                    0x10000 | regnum_cortex_mf[i]);
+					    ADIV5_AP_DB(DB_DCRSR),
+					    0x10000 | regnum_cortex_mf[i]);
 		}
 }
 
@@ -520,7 +523,7 @@ static void cortexm_reset(target *t)
 	 *          or SYSRESETREQ: 0x05FA0004 (system reset)
 	 */
 	target_mem_write32(t, CORTEXM_AIRCR,
-	                   CORTEXM_AIRCR_VECTKEY | CORTEXM_AIRCR_SYSRESETREQ);
+			   CORTEXM_AIRCR_VECTKEY | CORTEXM_AIRCR_SYSRESETREQ);
 
 	/* If target needs to do something extra (see Atmel SAM4L for example) */
 	if (t->extended_reset != NULL) {
@@ -539,8 +542,8 @@ static void cortexm_halt_request(target *t)
 	volatile struct exception e;
 	TRY_CATCH (e, EXCEPTION_TIMEOUT) {
 		target_mem_write32(t, CORTEXM_DHCSR, CORTEXM_DHCSR_DBGKEY |
-		                                          CORTEXM_DHCSR_C_HALT |
-		                                          CORTEXM_DHCSR_C_DEBUGEN);
+							  CORTEXM_DHCSR_C_HALT |
+							  CORTEXM_DHCSR_C_DEBUGEN);
 	}
 	if (e.type) {
 		tc_printf(t, "Timeout sending interrupt, is target in WFI?\n");
